@@ -39,7 +39,18 @@
 
 /* _____________ Your Code Here _____________ */
 
-type DeepObjectToUniq<O extends object> = any
+const symbol = Symbol()
+
+// version 1
+// type DeepObjectToUniq<O extends object, Path extends any[] = [O]> = 
+//   O extends Record<string, any>
+//   ? { [key in keyof O]: DeepObjectToUniq<O[key],[...Path,key]> } & { [symbol]?: Path }
+//   : O
+
+// version 2
+type DeepObjectToUniq<O extends object, Path extends any[] = [O]> = {
+  [K in keyof O]: O[K] extends object ? DeepObjectToUniq<O[K], [...Path, K]> : O[K]
+} & { [symbol]?: Path }
 
 
 /* _____________ Test Cases _____________ */
@@ -50,7 +61,6 @@ type Quz = { quz: 4 }
 type Foo = { foo: 2; baz: Quz; bar: Quz }
 type Bar = { foo: 2; baz: Quz; bar: Quz & { quzz?: 0 } }
 
-type UniqQuz = DeepObjectToUniq<Quz>
 type UniqFoo = DeepObjectToUniq<Foo>
 type UniqBar = DeepObjectToUniq<Bar>
 
@@ -61,11 +71,9 @@ uniqFoo = foo
 foo = uniqFoo
 
 type cases = [
-  IsFalse<Equal<UniqQuz, Quz>>,
   IsFalse<Equal<UniqFoo, Foo>>,
   IsTrue<Equal<UniqFoo['foo'], Foo['foo']>>,
   IsTrue<Equal<UniqFoo['bar']['quz'], Foo['bar']['quz']>>,
-  IsFalse<Equal<UniqQuz, UniqFoo['baz']>>,
   IsFalse<Equal<UniqFoo['bar'], UniqFoo['baz']>>,
   IsFalse<Equal<UniqBar['baz'], UniqFoo['baz']>>,
   IsTrue<Equal<keyof UniqBar['baz'], keyof UniqFoo['baz']>>,
